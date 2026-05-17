@@ -1,0 +1,39 @@
+modLoader="javafml"
+loaderVersion="[4,)"
+license="LGPL-3.0-or-later"
+
+[[mods]]
+modId="aipatternforge"
+version="1.3.1"
+displayName="AI Pattern Forge"
+authors="Eli + ChatGPT"
+description='''Adds an AE2-dependent Pattern Forge terminal with exact bundled AE2 GUI assets, GUI-only interaction, real inventory slots, cached recipe indexing, memory-conscious search, shift-click inventory pattern selection, multi-select bulk encoding, and crafting/stonecutting/processing pattern support.'''
+
+[[dependencies.aipatternforge]]
+modId="neoforge"
+type="required"
+versionRange="[21.1.221,)"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.aipatternforge]]
+modId="minecraft"
+type="required"
+versionRange="[1.21.1]"
+ordering="NONE"
+side="BOTH"
+
+[[dependencies.aipatternforge]]
+modId="ae2"
+type="required"
+versionRange="[19.2.17,)"
+ordering="AFTER"
+side="BOTH"
+
+
+[[dependencies.aipatternforge]]
+modId="jei"
+type="optional"
+versionRange="[19.0.0,)"
+ordering="AFTER"
+side="BOTH"

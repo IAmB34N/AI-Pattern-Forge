@@ -1,0 +1,12 @@
+{
+  "parent": "minecraft:block/cube",
+  "textures": {
+    "up": "aipatternforge:block/ai_pattern_forge_top_online",
+    "down": "aipatternforge:block/ai_pattern_forge_bottom",
+    "north": "aipatternforge:block/ai_pattern_forge_front_online",
+    "south": "aipatternforge:block/ai_pattern_forge_side",
+    "east": "aipatternforge:block/ai_pattern_forge_side",
+    "west": "aipatternforge:block/ai_pattern_forge_side",
+    "particle": "aipatternforge:block/ai_pattern_forge_side"
+  }
+}

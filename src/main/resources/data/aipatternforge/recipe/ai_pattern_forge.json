@@ -1,0 +1,20 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "pattern": [
+    "FCF",
+    "LPL",
+    "SUS"
+  ],
+  "key": {
+    "F": { "item": "ae2:fluix_block" },
+    "C": { "item": "ae2:calculation_processor" },
+    "L": { "item": "ae2:logic_processor" },
+    "P": { "item": "ae2:pattern_encoding_terminal" },
+    "S": { "item": "ae2:sky_stone_block" },
+    "U": { "item": "ae2:crafting_unit" }
+  },
+  "result": {
+    "id": "aipatternforge:ai_pattern_forge",
+    "count": 1
+  }
+}
