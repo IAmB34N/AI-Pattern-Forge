@@ -36,7 +36,10 @@ import java.util.Set;
 public final class RecipeCatalog {
     public record Entry(int globalIndex, String type, ResourceLocation id, ItemStack result, String haystack, String mod) {}
 
-    private static final int TICK_BUDGET = 256;
+    // Number of recipes/items to process per client tick while the catalog builds.
+    // Higher = catalog ready sooner, slightly bigger per-tick spike. 1024 keeps each tick under
+    // a few ms on modern hardware while finishing a 20k-item modpack in ~1 second.
+    private static final int TICK_BUDGET = 1024;
 
     private static Level boundLevel;
     private static int boundRecipeCount = -1;

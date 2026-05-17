@@ -1,11 +1,14 @@
 package com.example.aipatternforge;
 
 import com.example.aipatternforge.compat.jei.JEIBridge;
+import com.mojang.blaze3d.platform.InputConstants;
 import net.minecraft.Util;
+import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.components.EditBox;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.gui.screens.inventory.AbstractContainerScreen;
+import net.minecraft.core.NonNullList;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
@@ -13,8 +16,16 @@ import net.minecraft.world.entity.player.Inventory;
 import net.minecraft.world.inventory.ClickType;
 import net.minecraft.world.inventory.Slot;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.crafting.AbstractCookingRecipe;
+import net.minecraft.world.item.crafting.CraftingRecipe;
+import net.minecraft.world.item.crafting.Ingredient;
+import net.minecraft.world.item.crafting.Recipe;
+import net.minecraft.world.item.crafting.RecipeHolder;
+import net.minecraft.world.item.crafting.ShapedRecipe;
+import net.minecraft.world.item.crafting.StonecutterRecipe;
 import net.neoforged.fml.ModList;
 import org.jetbrains.annotations.Nullable;
+import org.lwjgl.glfw.GLFW;
 
 import java.net.URI;
 import java.util.ArrayList;
@@ -22,6 +33,7 @@ import java.util.Comparator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.Set;
 
 /**
@@ -299,8 +311,158 @@ public class AiPatternForgeScreen extends AbstractContainerScreen<AiPatternForge
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         renderBackground(g, mouseX, mouseY, partialTick);
         super.render(g, mouseX, mouseY, partialTick);
+        // Tab-hold recipe overlay supersedes the normal tooltip so the user can read the recipe
+        // without the tooltip getting in the way.
+        if (renderRecipeOverlayIfHeld(g, mouseX, mouseY)) {
+            return;
+        }
         renderHoveredTooltip(g, mouseX, mouseY);
         renderTooltip(g, mouseX, mouseY);
+    }
+
+    private static boolean isTabHeld() {
+        long window = Minecraft.getInstance().getWindow().getWindow();
+        return InputConstants.isKeyDown(window, GLFW.GLFW_KEY_TAB);
+    }
+
+    /**
+     * If Tab is held while the cursor is over a grid entry with a known recipe, renders a small
+     * overlay showing the recipe's inputs and result. Returns true if it drew the overlay so
+     * the caller can skip the regular tooltip.
+     */
+    private boolean renderRecipeOverlayIfHeld(GuiGraphics g, int mouseX, int mouseY) {
+        if (!isTabHeld()) return false;
+        if (minecraft == null || minecraft.level == null) return false;
+        int idx = indexAt(mouseX, mouseY);
+        if (idx < 0 || idx >= visibleMatches.size()) return false;
+        RecipeCatalog.Entry entry = visibleMatches.get(idx);
+        if (entry.globalIndex() < 0) return false;
+
+        Optional<RecipeHolder<?>> holder = minecraft.level.getRecipeManager().byKey(entry.id());
+        if (holder.isEmpty()) return false;
+        Recipe<?> recipe = holder.get().value();
+
+        if (recipe instanceof CraftingRecipe cr) {
+            drawCraftingRecipeOverlay(g, mouseX, mouseY, cr, entry.result(), entry.type());
+            return true;
+        }
+        if (recipe instanceof StonecutterRecipe sr) {
+            drawSingleInputOverlay(g, mouseX, mouseY, firstStack(sr.getIngredients()), entry.result(), entry.type());
+            return true;
+        }
+        if (recipe instanceof AbstractCookingRecipe acr) {
+            drawSingleInputOverlay(g, mouseX, mouseY, firstStack(acr.getIngredients()), entry.result(), entry.type());
+            return true;
+        }
+        return false;
+    }
+
+    private static ItemStack firstStack(List<Ingredient> ingredients) {
+        if (ingredients.isEmpty()) return ItemStack.EMPTY;
+        ItemStack[] items = ingredients.get(0).getItems();
+        return items.length == 0 ? ItemStack.EMPTY : items[0];
+    }
+
+    private void drawCraftingRecipeOverlay(GuiGraphics g, int mouseX, int mouseY,
+                                           CraftingRecipe recipe, ItemStack result, String type) {
+        // 3x3 grid (54x54) + arrow (16) + result (18) + padding
+        int w = 6 + 54 + 8 + 16 + 8 + 18 + 6;     // ~110
+        int h = 16 + 54 + 6;                       // header + grid
+        int x = clampOverlayX(mouseX + 12, w);
+        int y = clampOverlayY(mouseY - 12, h);
+        drawOverlayFrame(g, x, y, w, h, type + " recipe");
+
+        int gridLeft = x + 6;
+        int gridTop = y + 16;
+        NonNullList<Ingredient> ingredients = recipe.getIngredients();
+
+        if (recipe instanceof ShapedRecipe shaped) {
+            int rw = shaped.getWidth();
+            int rh = shaped.getHeight();
+            for (int r = 0; r < 3; r++) {
+                for (int c = 0; c < 3; c++) {
+                    int slotX = gridLeft + c * 18;
+                    int slotY = gridTop + r * 18;
+                    drawIngredientSlot(g, slotX, slotY);
+                    if (r < rh && c < rw) {
+                        int i = r * rw + c;
+                        if (i < ingredients.size()) {
+                            ItemStack stack = firstStack(List.of(ingredients.get(i)));
+                            if (!stack.isEmpty()) g.renderFakeItem(stack, slotX + 1, slotY + 1);
+                        }
+                    }
+                }
+            }
+        } else {
+            for (int r = 0; r < 3; r++) {
+                for (int c = 0; c < 3; c++) {
+                    int slotX = gridLeft + c * 18;
+                    int slotY = gridTop + r * 18;
+                    drawIngredientSlot(g, slotX, slotY);
+                    int i = r * 3 + c;
+                    if (i < ingredients.size()) {
+                        ItemStack stack = firstStack(List.of(ingredients.get(i)));
+                        if (!stack.isEmpty()) g.renderFakeItem(stack, slotX + 1, slotY + 1);
+                    }
+                }
+            }
+        }
+
+        int arrowX = gridLeft + 54 + 6;
+        int arrowY = gridTop + 18 + 4;
+        g.drawString(font, Component.literal("→"), arrowX, arrowY, TEXT, false);
+
+        int resultX = arrowX + 16;
+        int resultY = gridTop + 18;
+        drawIngredientSlot(g, resultX, resultY);
+        g.renderFakeItem(result, resultX + 1, resultY + 1);
+    }
+
+    private void drawSingleInputOverlay(GuiGraphics g, int mouseX, int mouseY,
+                                        ItemStack input, ItemStack result, String type) {
+        int w = 6 + 18 + 8 + 16 + 8 + 18 + 6;
+        int h = 16 + 18 + 6;
+        int x = clampOverlayX(mouseX + 12, w);
+        int y = clampOverlayY(mouseY - 12, h);
+        drawOverlayFrame(g, x, y, w, h, type + " recipe");
+
+        int inX = x + 6;
+        int inY = y + 16;
+        drawIngredientSlot(g, inX, inY);
+        if (!input.isEmpty()) g.renderFakeItem(input, inX + 1, inY + 1);
+
+        int arrowX = inX + 18 + 6;
+        int arrowY = inY + 4;
+        g.drawString(font, Component.literal("→"), arrowX, arrowY, TEXT, false);
+
+        int outX = arrowX + 16;
+        int outY = inY;
+        drawIngredientSlot(g, outX, outY);
+        g.renderFakeItem(result, outX + 1, outY + 1);
+    }
+
+    private int clampOverlayX(int x, int overlayW) {
+        if (x + overlayW > width) x = Math.max(4, width - overlayW - 4);
+        return Math.max(4, x);
+    }
+
+    private int clampOverlayY(int y, int overlayH) {
+        if (y + overlayH > height) y = Math.max(4, height - overlayH - 4);
+        return Math.max(4, y);
+    }
+
+    private void drawOverlayFrame(GuiGraphics g, int x, int y, int w, int h, String title) {
+        g.fill(x, y, x + w, y + h, OUTLINE);
+        g.fill(x + 1, y + 1, x + w - 1, y + h - 1, PANEL_LIGHT);
+        g.fill(x + 1, y + 1, x + w - 2, y + h - 2, PANEL_MID);
+        g.fill(x + 1, y + 1, x + w - 1, y + 14, PANEL_DARK);
+        g.fill(x + 1, y + 1, x + w - 1, y + 13, PANEL_MID);
+        g.drawString(font, Component.literal(title), x + 4, y + 3, TEXT, false);
+    }
+
+    private static void drawIngredientSlot(GuiGraphics g, int x, int y) {
+        g.fill(x, y, x + 18, y + 18, 0xFF555B72);
+        g.fill(x + 1, y + 1, x + 17, y + 17, 0xFF8B92A8);
     }
 
     @Override
@@ -399,7 +561,7 @@ public class AiPatternForgeScreen extends AbstractContainerScreen<AiPatternForge
                     g.fill(x, y, x + SLOT_SIZE, y + 1, 0xFFBFE7FF);
                     g.fill(x, y + SLOT_SIZE - 1, x + SLOT_SIZE, y + SLOT_SIZE, 0xFF5E93B8);
                 }
-                g.renderItem(e.result(), x + 1, y + 1);
+                g.renderFakeItem(e.result(), x + 1, y + 1);
                 if (e.globalIndex() < 0) {
                     g.fill(x + 12, y + 12, x + 17, y + 17, 0xAA9B5555);
                 }
@@ -423,10 +585,10 @@ public class AiPatternForgeScreen extends AbstractContainerScreen<AiPatternForge
 
         ItemStack result = selected.result();
         switch (encodingMode) {
-            case CRAFTING -> g.renderItem(result, leftPos + CRAFTING_RESULT_X, topPos + imageHeight - CRAFTING_RESULT_BOTTOM);
-            case PROCESSING -> g.renderItem(result, leftPos + PROCESSING_OUTPUT_X, topPos + imageHeight - PROCESSING_OUTPUT_BOTTOM);
-            case STONECUTTING -> g.renderItem(result, leftPos + STONECUTTING_RESULT_X, topPos + imageHeight - STONECUTTING_RESULT_BOTTOM);
-            case SMITHING -> g.renderItem(result, leftPos + SMITHING_RESULT_X, topPos + imageHeight - SMITHING_RESULT_BOTTOM);
+            case CRAFTING -> g.renderFakeItem(result, leftPos + CRAFTING_RESULT_X, topPos + imageHeight - CRAFTING_RESULT_BOTTOM);
+            case PROCESSING -> g.renderFakeItem(result, leftPos + PROCESSING_OUTPUT_X, topPos + imageHeight - PROCESSING_OUTPUT_BOTTOM);
+            case STONECUTTING -> g.renderFakeItem(result, leftPos + STONECUTTING_RESULT_X, topPos + imageHeight - STONECUTTING_RESULT_BOTTOM);
+            case SMITHING -> g.renderFakeItem(result, leftPos + SMITHING_RESULT_X, topPos + imageHeight - SMITHING_RESULT_BOTTOM);
         }
 
         // Blank pattern preview using AE2's BACKGROUND_BLANK_PATTERN sprite.
@@ -441,7 +603,7 @@ public class AiPatternForgeScreen extends AbstractContainerScreen<AiPatternForge
             int w = font.width(count);
             g.drawString(font, Component.literal(count), encX + 9 - w / 2, encY + 5, TEXT, false);
         } else {
-            g.renderItem(result, encX + 1, encY + 1);
+            g.renderFakeItem(result, encX + 1, encY + 1);
         }
     }
 
@@ -779,9 +941,10 @@ public class AiPatternForgeScreen extends AbstractContainerScreen<AiPatternForge
     public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
         boolean searchFocused = searchBox != null && searchBox.isFocused();
 
-        // Ctrl+A: select every visible craftable, but only when the search box doesn't have focus
-        // (so Ctrl+A inside the search box still selects search text).
-        if (Screen.hasControlDown() && keyCode == 65 && !searchFocused) {
+        // Ctrl+A intercepts at the screen level regardless of where focus is. The terminal's
+        // "select all visible craftable" is the meaningful action here; selecting the literal
+        // search text isn't useful.
+        if (Screen.hasControlDown() && keyCode == GLFW.GLFW_KEY_A) {
             selectedGlobalIndices.clear();
             for (RecipeCatalog.Entry e : visibleMatches) {
                 if (e.globalIndex() >= 0) selectedGlobalIndices.add(e.globalIndex());
