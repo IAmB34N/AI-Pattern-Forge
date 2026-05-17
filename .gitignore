@@ -1,0 +1,24 @@
+# Gradle / NeoForge build output (regenerated on every build)
+.gradle/
+build/
+run/
+out/
+bin/
+
+# IDE workspace files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Mod-author local-only
+*.log
+local.properties
