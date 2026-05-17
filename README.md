@@ -1,6 +1,11 @@
-# AI Pattern Forge 1.3.1
+# AI Pattern Forge 1.3.2
 
-AI Pattern Forge adds an AE2-style terminal block for creating encoded patterns faster. The v1.3.1 UI matches AE2's Pattern Encoding Terminal closely — bundled AE2 layout, real AE2 icon sprites, mode tabs, an attached toolbar, and an in-terminal pattern encoding area.
+AI Pattern Forge adds an AE2-style terminal block for creating encoded patterns faster. The v1.3.2 UI matches AE2's Pattern Encoding Terminal closely — bundled AE2 layout, real AE2 icon sprites, mode tabs, an attached toolbar, and an in-terminal pattern encoding area.
+
+## Download
+
+- **CurseForge:** [AE2 AI Pattern Forge](https://www.curseforge.com/minecraft/mc-mods/ae2-ai-pattern-forge)
+- **GitHub Releases:** [latest release](https://github.com/IAmB34N/AI-Pattern-Forge/releases/latest) (jar attached to each tag)
 
 ## Features
 
@@ -18,6 +23,13 @@ AI Pattern Forge adds an AE2-style terminal block for creating encoded patterns 
 ## Recipe
 
 ![Recipe Preview](aipatternforge_recipe.png)
+
+## v1.3.2 changes
+
+- **Ctrl+A** in the terminal now always selects every visible craftable, even when the search box is focused. (Triple-click in the search box still selects search text.)
+- **Hold Tab** while hovering an item in the grid to see its recipe overlay: 3x3 input grid for crafting (shaped or shapeless), input → result for smelting / blasting / smoking / campfire / stonecutting. Resolved client-side via `RecipeManager.byKey`, no extra packets.
+- Catalog tick budget bumped 256 → 1024 entries per client tick, so first-open lag on large modpacks drops to roughly a quarter.
+- Grid items render via `GuiGraphics.renderFakeItem`, skipping durability-bar / cooldown overlay setup.
 
 ## v1.3.1 changes
 
