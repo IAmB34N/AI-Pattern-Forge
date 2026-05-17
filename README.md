@@ -50,3 +50,14 @@ Sky Stone Block   Crafting Unit              Sky Stone Block
 ## Credits / License
 
 AI Pattern Forge depends on Applied Energistics 2. The terminal-style GUI is adapted from AE2 19.2.17 terminal GUI layout/style concepts, which are licensed under LGPL-3.0-or-later. Credit for the original AE2 GUI work goes to the Applied Energistics 2 team. This mod is unofficial and is not endorsed by AE2. Source code should be provided with releases for LGPL-3.0 compliance.
+## License and Credits
+
+### Clarification
+
+AI Pattern Forge’s original code is licensed under the MIT License.
+
+Portions of the GUI layout, terminal styling, and bundled GUI assets are adapted from Applied Energistics 2, which is licensed under LGPL-3.0. Those AE2-derived portions remain subject to the LGPL-3.0 license.
+
+Credit for the original AE2 GUI design, terminal layout, and related assets goes to the Applied Energistics 2 team.
+
+AI Pattern Forge is an unofficial add-on and is not affiliated with, endorsed by, or maintained by the Applied Energistics 2 team.
